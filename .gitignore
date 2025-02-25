@@ -1,0 +1,16 @@
+# Ignore build files
+# Ignore Android build files
+android/app/build/
+android/app/outputs/
+android/.gradle/
+android/.idea/
+android/app/.cxx/
+android/app/intermediates/
+android/app/release/
+
+
+# Ignore node_modules (already present, but ensure it's included)
+node_modules/
+
+# Ignore expo environment files
+expo-env.d.ts
