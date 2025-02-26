@@ -192,6 +192,11 @@ dependencies {
     implementation("com.facebook.react:react-android")
     implementation ("com.google.firebase:firebase-messaging:23.0.0")
 
+    // Exclude legacy support libraries
+    implementation("com.google.firebase:firebase-messaging:23.0.0") {
+        exclude group: "com.android.support", module: "support-compat"
+    }
+
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";
     def isWebpAnimatedEnabled = (findProperty('expo.webp.animated') ?: "") == "true";

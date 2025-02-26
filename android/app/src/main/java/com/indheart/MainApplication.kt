@@ -1,4 +1,3 @@
-// Mainapplication.kt
 package com.indheart
 
 import android.app.Application
@@ -17,7 +16,7 @@ import com.facebook.soloader.SoLoader
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
 
-import io.invertase.notifee.NotifeePackage;
+
 
 
 class MainApplication : Application(), ReactApplication {
@@ -30,9 +29,6 @@ class MainApplication : Application(), ReactApplication {
             // Packages that cannot be autolinked yet can be added manually here, for example:
             // packages.add(new MyReactNativePackage());
             // packages.add(ReactNativePushNotificationPackage())
-            packages.add(NotifeePackage()) 
-
-
             return packages
           }
 

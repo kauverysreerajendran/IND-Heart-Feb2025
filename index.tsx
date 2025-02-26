@@ -49,7 +49,7 @@ messaging()
   .then(async token => {
     console.log('FCM Token:', token);
     await AsyncStorage.setItem('authToken', token); // Save token to AsyncStorage
-    // sendNotification(token, 'IND Title', 'IND Test');
+    sendNotification(token, 'IND Title', 'IND Test');
   })
   .catch(error => {
     console.error('Error fetching FCM token:', error);

@@ -1,14 +1,10 @@
-// MainActivity.kt 
 package com.indheart
-
-
-import android.app.NotificationChannel
-import android.app.NotificationManager
 
 import android.os.Build
 import android.os.Bundle
 
 import android.content.Context
+import android.app.NotificationManager
 import androidx.core.app.NotificationCompat
 
 import com.facebook.react.ReactActivity
@@ -25,41 +21,7 @@ class MainActivity : ReactActivity() {
     // This is required for expo-splash-screen.
     setTheme(R.style.AppTheme);
     super.onCreate(null)
-    // Create notification channels
-        createNotificationChannels()
   }
-
-
-   private fun createNotificationChannels() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationManager = 
-                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-            // Urgent channel for heads-up notifications
-            NotificationChannel(
-                "urgent",
-                "Urgent Notifications",
-                NotificationManager.IMPORTANCE_HIGH
-            ).apply {
-                description = "High priority notifications that require immediate attention"
-                enableLights(true)
-                enableVibration(true)
-                setShowBadge(true)
-                notificationManager.createNotificationChannel(this)
-            }
-
-            // Default channel for regular notifications
-            NotificationChannel(
-                "default",
-                "Default Notifications",
-                NotificationManager.IMPORTANCE_DEFAULT
-            ).apply {
-                description = "Regular notifications"
-                setShowBadge(true)
-                notificationManager.createNotificationChannel(this)
-            }
-        }
-    }
 
   /**
    * Returns the name of the main component registered from JavaScript. This is used to schedule
