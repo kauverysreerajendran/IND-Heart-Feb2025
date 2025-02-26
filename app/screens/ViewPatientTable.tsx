@@ -21,6 +21,8 @@ import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import { Buffer } from "buffer"; // Import buffer from npm
 import CustomAlert from "../components/CustomAlert";
+import { PermissionsAndroid } from "react-native";
+import { check, request, PERMISSIONS, RESULTS } from "react-native-permissions";
 
 // Custom Text component to disable font scaling globally
 const Text = (props: any) => {
@@ -62,7 +64,7 @@ const ViewPatientTablePage: React.FC = () => {
     const fetchPatientProfiles = async () => {
       try {
         const response = await axios.get(
-          "https://indheart.pinesphere.in/api/api/patients/"
+          "https://vs3k4b04-8000.inc1.devtunnels.ms/api/api/patients/"
         ); // Adjust the URL to your API endpoint
 
         const sortedProfiles = response.data.sort(
@@ -118,34 +120,55 @@ const ViewPatientTablePage: React.FC = () => {
     navigation.navigate("AddMetabolicProfilePage");
   };
 
+
   const handleExcelDownload = async () => {
     try {
+      if (Platform.OS === "android") {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+          {
+            title: "Storage Permission Required",
+            message:
+              "This app needs access to your storage to download the Excel file",
+            buttonNeutral: "Ask Me Later",
+            buttonNegative: "Cancel",
+            buttonPositive: "OK",
+          }
+        );
+  
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          console.log("Storage permission denied");
+          setAlertTitle("Permission Denied");
+          setAlertMessage("Storage permission is required to download the file.");
+          return;
+        }
+      }
+  
       const response = await axios.get(
-        "https://indheart.pinesphere.in/api/patients/download/",
+        "https://vs3k4b04-8000.inc1.devtunnels.ms/api/patients/download/",
         { responseType: "arraybuffer" } // Use arraybuffer instead of blob
       );
-
+  
       // Convert ArrayBuffer to Base64 string
-      const base64Data = Buffer.from(response.data, "binary").toString(
-        "base64"
-      );
+      const base64Data = Buffer.from(response.data, "binary").toString("base64");
       // Create a file path
       const fileUri = FileSystem.documentDirectory + "patients.xlsx";
-
+  
       // Write the file
       await FileSystem.writeAsStringAsync(fileUri, base64Data, {
         encoding: FileSystem.EncodingType.Base64,
       });
-
+  
+      // Log the file path for debugging
+      console.log("File saved to:", fileUri);
+  
       // Share or open the file
       await Sharing.shareAsync(fileUri);
-
-      //Alert.alert("Download Successful", "Excel file has been downloaded.");
+  
       setAlertTitle("Download Successful");
       setAlertMessage("Excel file has been downloaded.");
     } catch (error) {
       console.error("Failed to download Excel file:", error);
-      //Alert.alert("Error", "Failed to download Excel file.");
       setAlertTitle("Error");
       setAlertMessage("Failed to download Excel file.");
     }
@@ -165,7 +188,7 @@ const ViewPatientTablePage: React.FC = () => {
           onPress: async () => {
             try {
               await axios.delete(
-                `https://indheart.pinesphere.in/api/api/patients/${patientID}/`
+                `https://vs3k4b04-8000.inc1.devtunnels.ms/api/api/patients/${patientID}/`
               ); // Adjust the URL to your API endpoint
               setPatientProfiles((prevProfiles) =>
                 prevProfiles.filter(
@@ -206,7 +229,7 @@ const ViewPatientTablePage: React.FC = () => {
           try {
             if (deletePatientID) {
               await axios.delete(
-                `https://indheart.pinesphere.in/api/api/patients/${deletePatientID}/`
+                `https://vs3k4b04-8000.inc1.devtunnels.ms/api/api/patients/${deletePatientID}/`
               ); // Adjust the URL to your API endpoint
               setPatientProfiles((prevProfiles) =>
                 prevProfiles.filter(

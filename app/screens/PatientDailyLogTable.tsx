@@ -19,6 +19,8 @@ import { Button } from "react-native";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import CustomAlert from "../components/CustomAlert";
+import { PermissionsAndroid } from "react-native";
+import { Buffer } from "buffer";
 
 // Custom Text component to disable font scaling globally 
 const Text = (props: any) => { return <RNText {...props} allowFontScaling={false} />; };
@@ -107,58 +109,55 @@ const PatientDailyLogScreen = () => {
     fetchPatientIds();
   }, []);
 
+
+  
   const handleExportPatientDataDownload = async () => {
     try {
+      if (Platform.OS === "android") {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+          {
+            title: "Storage Permission Required",
+            message:
+              "This app needs access to your storage to download the Excel file",
+            buttonNeutral: "Ask Me Later",
+            buttonNegative: "Cancel",
+            buttonPositive: "OK",
+          }
+        );
+  
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          console.log("Storage permission denied");
+          setAlertTitle("Permission Denied");
+          setAlertMessage("Storage permission is required to download the file.");
+          return;
+        }
+      }
+  
       const response = await axios.get(
         "https://indheart.pinesphere.in/patient/export-patient-data/",
-        { responseType: "blob" } // Requesting blob data
+        { responseType: "arraybuffer" } // Use arraybuffer instead of blob
       );
-
-      // Check if the response data is valid
-      if (!response.data) {
-        throw new Error("No data returned from the server");
-      }
-
-      // Create a Blob from the response data
-      const blob = new Blob([response.data], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  
+      // Convert ArrayBuffer to Base64 string
+      const base64Data = Buffer.from(response.data, "binary").toString("base64");
+      const fileUri = FileSystem.documentDirectory + "exported_patient_data.xlsx";
+  
+      // Write the file
+      await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+        encoding: FileSystem.EncodingType.Base64,
       });
-
-      // Create a FileReader to read the Blob
-      const reader = new FileReader();
-
-      reader.onloadend = async () => {
-        // Ensure the result is not null and is a string
-        if (reader.result && typeof reader.result === "string") {
-          const base64Data = reader.result.split(",")[1]; // Extract base64 part
-          const fileUri =
-            FileSystem.documentDirectory + "exported_patient_data.xlsx";
-
-          // Write the file as a Base64 encoded string
-          await FileSystem.writeAsStringAsync(fileUri, base64Data, {
-            encoding: FileSystem.EncodingType.Base64,
-          });
-
-          // Share the file
-          await Sharing.shareAsync(fileUri);
-          //("Download Successful", "Excel file has been downloaded.");
-          setAlertTitle("Download Successful");
-          setAlertMessage("Excel file has been downloaded.");
-        } else {
-          throw new Error("FileReader result is null or not a string");
-        }
-      };
-
-      reader.onerror = (event) => {
-        console.error("FileReader error:", event); // Log FileReader error
-        throw new Error("Failed to read the blob");
-      };
-
-      // Read the Blob as Data URL
-      reader.readAsDataURL(blob);
+  
+      // Log the file path for debugging
+      console.log("File saved to:", fileUri);
+  
+      // Share or open the file
+      await Sharing.shareAsync(fileUri);
+  
+      setAlertTitle("Download Successful");
+      setAlertMessage("Excel file has been downloaded.");
     } catch (error) {
       console.error("Failed to download Excel file:", error);
-      //Alert.alert("Error", "Failed to download Excel file.");
       setAlertTitle("Error");
       setAlertMessage("Failed to download Excel file.");
     }
