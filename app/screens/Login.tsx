@@ -48,6 +48,9 @@ const LoginPage: React.FC = () => {
   const [alertTitle, setAlertTitle] = useState('');
   const [alertMessage, setAlertMessage] = useState('');
 
+  const [alertLoginTitle, setAlertLoginTitle] = useState('');
+  const [alertLoginMessage, setAlertLoginMessage] = useState('');
+  const [alertLoginVisible, setAlertLoginVisible] = useState(false);
 
   useEffect(() => {
     const animate = () => {
@@ -199,8 +202,8 @@ const LoginPage: React.FC = () => {
       } else {
         if (data.message === "Phone number already verified. Please login.") {
           if (data.user_type === "Admin") {
-            setAlertTitle(languageText.info);
-            setAlertMessage(languageText.phoneAlreadyVerifiedAdmin);
+            setAlertLoginTitle(languageText.info);
+            setAlertLoginMessage(languageText.phoneAlreadyVerifiedAdmin);
             setAlertVisible(true);
             navigation.navigate("AdminDashboardPage");
           } else if (data.user_type === "Patient") {

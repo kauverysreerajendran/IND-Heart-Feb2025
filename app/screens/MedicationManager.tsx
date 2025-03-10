@@ -811,7 +811,7 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 30,
     color: "#000",
-    fontSize: RFValue(10),
+    fontSize: RFValue(12),
     maxHeight: "20%",
   },
   placeholderText: {

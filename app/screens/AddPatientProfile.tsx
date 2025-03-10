@@ -644,7 +644,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 55,
     paddingHorizontal: 10,
-    fontSize: RFValue(9),
+    fontSize: RFValue(12),
     flex: 2,
     marginTop: 10,
   },

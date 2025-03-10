@@ -469,14 +469,14 @@ const YogaPage: React.FC<WalkingProps> = ({ navigation }) => {
                 </Text>
                 <View style={styles.durationContainer}>
                   <TextInput
-                    style={[styles.input, { fontSize: RFValue(10) }]}
+                    style={[styles.input, { fontSize: RFValue(12) }]}
                     placeholder={languageText.placeholderHH}
                     keyboardType="numeric"
                     value={durationHours} // Bind durationHours state
                     onChangeText={setDurationHours} // Update durationHours state
                   />
                   <TextInput
-                    style={[styles.input, { fontSize: RFValue(10) }]}
+                    style={[styles.input, { fontSize: RFValue(12) }]}
                     placeholder={languageText.placeholderMM}
                     keyboardType="numeric"
                     value={durationMinutes} // Bind durationMinutes state

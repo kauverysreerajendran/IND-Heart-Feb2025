@@ -584,7 +584,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingLeft: 10,
     borderRadius: 20,
-    fontSize: 10,
+    fontSize: 12,
   },
   reasonTitle: {
     fontSize: 14,

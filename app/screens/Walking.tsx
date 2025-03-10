@@ -599,7 +599,7 @@ const Walking: React.FC<WalkingProps> = ({ navigation }) => {
                 {/* Update this to reflect kilometers */}
               </Text>
               <TextInput
-                style={[styles.input, { fontSize: RFValue(10) }]}
+                style={[styles.input, { fontSize: RFValue(12) }]}
                 //placeholder={`Enter distance (e.g., 0.5 or 1 km)`}
                 placeholder={languageText.enterDistance}
                 onChangeText={(text) => {
@@ -623,7 +623,7 @@ const Walking: React.FC<WalkingProps> = ({ navigation }) => {
               </Text>
               <View style={styles.inputContainer}>
                 <TextInput
-                  style={[styles.input, { fontSize: RFValue(10) }]}
+                  style={[styles.input, { fontSize: RFValue(12) }]}
                   onChangeText={setHours}
                   value={hours}
                   placeholder={languageText.placeholderHH}
@@ -631,7 +631,7 @@ const Walking: React.FC<WalkingProps> = ({ navigation }) => {
                 />
 
                 <TextInput
-                  style={[styles.input, { fontSize: RFValue(10) }]}
+                  style={[styles.input, { fontSize: RFValue(12) }]}
                   onChangeText={setMinutes}
                   value={minutes}
                   placeholder={languageText.placeholderMM}
@@ -642,7 +642,7 @@ const Walking: React.FC<WalkingProps> = ({ navigation }) => {
                 {languageText.difficultyText}
               </Text>
               <TextInput
-                style={[styles.input, { fontSize: RFValue(10) }]}
+                style={[styles.input, { fontSize: RFValue(12) }]}
                 onChangeText={setText}
                 value={difficultyText}
                 placeholder={languageText.placeholderText}

@@ -20,7 +20,8 @@ import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import CustomAlert from "../components/CustomAlert";
 import { PermissionsAndroid } from "react-native";
-import { Buffer } from "buffer";
+import RNFS from 'react-native-fs';
+
 
 // Custom Text component to disable font scaling globally 
 const Text = (props: any) => { return <RNText {...props} allowFontScaling={false} />; };
@@ -57,12 +58,103 @@ const PatientDailyLogScreen = () => {
     {}
   );
   const [alertVisible, setAlertVisible] = useState(false);
-  const [alertTitle, setAlertTitle] = useState('');
-  const [alertMessage, setAlertMessage] = useState('');
+  const [alertTitle, setExcelAlertTitle] = useState('');
+  const [alertMessage, setExcelAlertMessage] = useState('');
 
+
+
+// Add this function after your blobToBase64 function
+// Update downloadXLSXFile function with more debugging and better storage handling
+const downloadXLSXFile = async (blob: Blob, fileName: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    try {
+      console.log("Starting downloadXLSXFile function...");
+      console.log("Android Platform Version:", Platform.Version);
+
+      // Convert Blob to Base64 using FileReader
+      const reader = new FileReader();
+      reader.readAsDataURL(blob);
+      
+      reader.onloadend = async () => {
+        try {
+          console.log("FileReader loaded successfully");
+          // Extract Base64 content (remove data URL prefix)
+          const fullBase64 = reader.result as string;
+          const base64Data = fullBase64.split(',')[1] || fullBase64.replace(/^data:.*;base64,/, '');
+
+          // Define the file path based on Android version using fixed folder name
+          const folderName = "ind_heart"; // Fixed folder name
+          let dirPath: string;
+          
+          if (Platform.OS === 'android') {
+            if (Platform.Version >= 29) { // Android 10+
+              console.log("Using app-specific directory for Android 10+");
+              // Use app-specific directory that doesn't require special permissions
+              dirPath = `${RNFS.ExternalCachesDirectoryPath}/${folderName}`;
+            } else {
+              console.log("Using external storage for older Android versions");
+              dirPath = `${RNFS.ExternalStorageDirectoryPath}/${folderName}`;
+            }
+          } else {
+            // iOS
+            dirPath = `${RNFS.DocumentDirectoryPath}/${folderName}`;
+          }
+          
+          console.log("Using directory path:", dirPath);
+          
+          // Ensure directory exists
+          try {
+            console.log("Checking if directory exists:", dirPath);
+            const dirExists = await RNFS.exists(dirPath);
+            console.log("Directory exists?", dirExists);
+            
+            if (!dirExists) {
+              console.log("Creating directory:", dirPath);
+              await RNFS.mkdir(dirPath);
+              console.log("Directory created successfully");
+            }
+          } catch (dirError) {
+            console.error("DETAILED Directory creation error:", dirError);
+            throw dirError;
+          }
+
+          const filePath = `${dirPath}/${fileName}`;
+          console.log("File path will be:", filePath);
+
+          // Write the file
+          console.log("Writing file...");
+          await RNFS.writeFile(filePath, base64Data, "base64");
+          
+          // Verify file was written
+          const fileExists = await RNFS.exists(filePath);
+          console.log("File exists after writing?", fileExists);
+          
+          if (!fileExists) {
+            throw new Error("File was not created successfully");
+          }
+
+          console.log("File downloaded successfully at:", filePath);
+          resolve(filePath); // Return the file path on success
+        } catch (error) {
+          console.error("Error in file processing DETAILS:", error);
+          reject(error);
+        }
+      };
+      
+      reader.onerror = (error) => {
+        console.error("Error reading file:", error);
+        reject(error);
+      };
+    } catch (error) {
+      console.error("Error in download process:", error);
+      reject(error);
+    }
+  });
+};
 
   // Fetch all data functions here
   const fetchDataForAllPatients = async () => {
+    console.log("Fetching data for all patients...");
     await fetchSleepDataForAllPatients(date);
     await fetchVegDataForAllPatients(date);
     await fetchNonVegDataForAllPatients(date);
@@ -70,6 +162,8 @@ const PatientDailyLogScreen = () => {
     await fetchExerciseDataForAllPatients(date);
     await fetchWalkingDataForAllPatients(date);
     await fetchYogaDataForAllPatients(date);
+    await fetchMedicineForAllPatients(date);
+    await fetchLifestyleForAllPatients(date);
   };
   const onClearFilter = () => {
     setSelectedPatientId("");
@@ -81,15 +175,7 @@ const PatientDailyLogScreen = () => {
     const currentDate = selectedDate || date;
     setShowDatePicker(false);
     setDate(currentDate);
-    fetchSleepDataForAllPatients(currentDate); // Fetch data on date change
-    fetchNonVegDataForAllPatients(currentDate);
-    fetchVegDataForAllPatients(currentDate);
-    fetchWaterDataForAllPatients(currentDate);
-    fetchExerciseDataForAllPatients(currentDate);
-    fetchMedicineForAllPatients(currentDate);
-    fetchWalkingDataForAllPatients(currentDate);
-    fetchYogaDataForAllPatients(currentDate);
-    fetchLifestyleForAllPatients(currentDate);
+    fetchDataForAllPatients(); // Fetch data when the date changes
   };
 
   // Fetch existing patient IDs from API
@@ -97,10 +183,11 @@ const PatientDailyLogScreen = () => {
     const fetchPatientIds = async () => {
       try {
         const response = await fetch(
-          "https://indheart.pinesphere.in/api/api/get-existing-patient-ids/"
+          "https://vs3k4b04-8000.inc1.devtunnels.ms/api/api/get-existing-patient-ids/"
         );
         const data = await response.json();
         setPatientIds(data.patient_ids);
+        console.log("Fetched Patient IDs:", data.patient_ids);
       } catch (error) {
         console.error("Error fetching patient IDs:", error);
       }
@@ -109,58 +196,211 @@ const PatientDailyLogScreen = () => {
     fetchPatientIds();
   }, []);
 
+  useEffect(() => {
+    if (patientIds.length > 0) {
+      fetchDataForAllPatients(); // Fetch all data when patientIds are available
+    }
+  }, [patientIds]);
 
   
-  const handleExportPatientDataDownload = async () => {
+ /*  const handleExportPatientDataDownload = async () => {
     try {
-      if (Platform.OS === "android") {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-          {
-            title: "Storage Permission Required",
-            message:
-              "This app needs access to your storage to download the Excel file",
-            buttonNeutral: "Ask Me Later",
-            buttonNegative: "Cancel",
-            buttonPositive: "OK",
-          }
-        );
-  
-        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
-          console.log("Storage permission denied");
-          setAlertTitle("Permission Denied");
-          setAlertMessage("Storage permission is required to download the file.");
-          return;
-        }
-      }
-  
-      const response = await axios.get(
-        "https://indheart.pinesphere.in/patient/export-patient-data/",
-        { responseType: "arraybuffer" } // Use arraybuffer instead of blob
+      const response = await fetch(
+        "https://vs3k4b04-8000.inc1.devtunnels.ms/patient/export-patient-data/"
       );
   
-      // Convert ArrayBuffer to Base64 string
-      const base64Data = Buffer.from(response.data, "binary").toString("base64");
+      if (!response.ok) {
+        throw new Error("Failed to download Excel file");
+      }
+  
+      const blob = await response.blob();
+      const base64Data = await blobToBase64(blob);
+      const base64DataWithoutPrefix = base64Data.replace(/^data:.*;base64,/, ''); // Remove the prefix
       const fileUri = FileSystem.documentDirectory + "exported_patient_data.xlsx";
   
-      // Write the file
-      await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+      await FileSystem.writeAsStringAsync(fileUri, base64DataWithoutPrefix, {
         encoding: FileSystem.EncodingType.Base64,
       });
   
-      // Log the file path for debugging
       console.log("File saved to:", fileUri);
   
-      // Share or open the file
       await Sharing.shareAsync(fileUri);
   
-      setAlertTitle("Download Successful");
-      setAlertMessage("Excel file has been downloaded.");
+      setExcelAlertTitle("Download Successful");
+      setExcelAlertMessage("Excel file has been downloaded.");
     } catch (error) {
       console.error("Failed to download Excel file:", error);
-      setAlertTitle("Error");
-      setAlertMessage("Failed to download Excel file.");
+      setExcelAlertTitle("Error");
+      setExcelAlertMessage("Failed to download Excel file.");
     }
+  }; */
+ /*  const handleExportPatientDataDownload = async () => {
+    // Internal permission request function
+    const requestPermission = async () => {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+          {
+            title: "Storage Permission",
+            message: "App needs access to your storage to download files",
+            buttonNeutral: "Ask Me Later",
+            buttonNegative: "Cancel",
+            buttonPositive: "OK"
+          }
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.error(err);
+        return false;
+      }
+    };
+  
+    // Request permission first
+    const hasPermission = await requestPermission();
+    if (!hasPermission) {
+      setExcelAlertTitle("Permission Denied");
+      setExcelAlertMessage("Storage permission is required to download files");
+      setAlertVisible(true);
+      return;
+    }
+    
+    try {
+      const response = await fetch(
+        "https://vs3k4b04-8000.inc1.devtunnels.ms/patient/export-patient-data/"
+      );
+  
+      if (!response.ok) {
+        throw new Error("Failed to download Excel file");
+      }
+  
+      const blob = await response.blob();
+      
+      // Generate a timestamped filename for uniqueness
+      const timestamp = new Date().getTime();
+      const fileName = `patient_data_${timestamp}.xlsx`;
+      
+      // Use the new function to handle the download
+      const filePath = await downloadXLSXFile(blob, fileName);
+      
+      const appName = "INDHeart";
+      
+      // Show success alert
+      setExcelAlertTitle("Download Successful");
+      setExcelAlertMessage(`Excel file downloaded to:\n${appName}/docs/${fileName}`);
+      setAlertVisible(true);
+      
+    } catch (error) {
+      console.error("Failed to download Excel file:", error);
+      setExcelAlertTitle("Error");
+      
+      // Type-check the error before accessing properties
+      let errorMessage = "Failed to download Excel file";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
+      setExcelAlertMessage(errorMessage);
+      setAlertVisible(true);
+    }
+  }; */
+  const handleExportPatientDataDownload = async () => {
+    // Modified permission request that accounts for Android version
+    const requestPermission = async () => {
+      try {
+        // For Android 10+ (API 29+), we use app-specific directories that don't require permission
+        if (Platform.OS === 'android' && Platform.Version >= 29) {
+          console.log("Using app-specific storage (no permission needed for Android 10+)");
+          return true;
+        }
+        
+        console.log("Requesting storage permission for older Android");
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+          {
+            title: "Storage Permission",
+            message: "App needs access to your storage to download files",
+            buttonNeutral: "Ask Me Later",
+            buttonNegative: "Cancel",
+            buttonPositive: "OK"
+          }
+        );
+        return granted === PermissionsAndroid.RESULTS.GRANTED;
+      } catch (err) {
+        console.error("Permission error:", err);
+        return false;
+      }
+    };
+  
+    // Request permission first (only matters for older Android)
+    const hasPermission = await requestPermission();
+    if (!hasPermission && Platform.OS === 'android' && Platform.Version < 29) {
+      setExcelAlertTitle("Permission Denied");
+      setExcelAlertMessage("Storage permission is required to download files");
+      setAlertVisible(true);
+      return;
+    }
+    
+    try {
+      console.log("Starting file download process...");
+      const response = await fetch(
+        "https://vs3k4b04-8000.inc1.devtunnels.ms/patient/export-patient-data/"
+      );
+  
+      if (!response.ok) {
+        throw new Error(`Failed to download Excel file (${response.status})`);
+      }
+  
+      const blob = await response.blob();
+      console.log("Got response blob, size:", blob.size);
+      
+      // Generate a timestamped filename for uniqueness
+      const timestamp = new Date().getTime();
+      const fileName = `patient_data_${timestamp}.xlsx`;
+      
+      // Define folder name here as well so it's in scope
+      const folderName = "ind_heart";
+      
+      // Use the new function to handle the download
+      const filePath = await downloadXLSXFile(blob, fileName);
+      console.log("Download completed successfully to:", filePath);
+      
+      // Show success alert with appropriate message based on Android version
+      setExcelAlertTitle("Download Successful");
+      
+      if (Platform.OS === 'android' && Platform.Version >= 29) {
+        // For Android 10+ with scoped storage, show a simpler message
+        setExcelAlertMessage(`Excel file downloaded to ${folderName}.\n\nFile: ${fileName}`);
+      } else {
+        // For older Android versions, show the traditional path
+        setExcelAlertMessage(`Excel file downloaded to:\n${folderName}/${fileName}`);
+      }
+      
+      setAlertVisible(true);
+      
+    } catch (error) {
+      console.error("Download failed with detailed error:", error);
+      setExcelAlertTitle("Error");
+      
+      // Type-check the error before accessing properties
+      let errorMessage = "Failed to download Excel file";
+      if (error instanceof Error) {
+        errorMessage = `${error.message}`;
+      }
+      
+      setExcelAlertMessage(errorMessage);
+      setAlertVisible(true);
+    }
+  };
+
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        resolve(reader.result as string);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
   };
 
   const handlePatientSelect = (patientId: string) => {
@@ -182,16 +422,21 @@ const PatientDailyLogScreen = () => {
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://indheart.pinesphere.in/patient/patient/${patientId}/all-sleep-data/${formattedDate}/`
+              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-sleep-data/${formattedDate}/`
             );
+            console.log(`Response for patient ${patientId} (Sleep):`, response.data);
+
             newSleepData[patientId] = response.data.exists;
           } catch (error) {
+            console.error(`Error fetching sleep data for patient ${patientId}:`, error);
+
             newSleepData[patientId] = false; // Default to false if there's an error
           }
         })
       );
 
       setSleepData(newSleepData);
+      console.log("Updated Sleep Data:", newSleepData);
     } catch (error) {
       console.error("Error fetching sleep data:", error);
     }
@@ -199,219 +444,219 @@ const PatientDailyLogScreen = () => {
 
   const fetchVegDataForAllPatients = async (selectedDate: Date) => {
     try {
-      const formattedDate = selectedDate.toISOString().split("T")[0]; // Format date as yyyy-mm-dd
+      const formattedDate = selectedDate.toISOString().split("T")[0];
       const newVegData: Record<string, boolean> = {};
 
       await Promise.all(
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://indheart.pinesphere.in/patient/patient/${patientId}/all-vegdiet-data/${formattedDate}/`
+              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-vegdiet-data/${formattedDate}/`
             );
+            console.log(`Response for patient ${patientId} (Veg):`, response.data);
             newVegData[patientId] = response.data.exists;
           } catch (error) {
-            newVegData[patientId] = false; // Default to false if there's an error
+            console.error(`Error fetching veg data for patient ${patientId}:`, error);
+            newVegData[patientId] = false;
           }
         })
       );
 
       setVegData(newVegData);
+      console.log("Updated Veg Data:", newVegData);
     } catch (error) {
-      console.error("Error fetching sleep data:", error);
+      console.error("Error fetching veg data:", error);
     }
   };
 
   const fetchNonVegDataForAllPatients = async (selectedDate: Date) => {
     try {
-      const formattedDate = selectedDate.toISOString().split("T")[0]; // Format date as yyyy-mm-dd
+      const formattedDate = selectedDate.toISOString().split("T")[0];
       const newNonVegData: Record<string, boolean> = {};
 
       await Promise.all(
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://indheart.pinesphere.in/patient/patient/${patientId}/all-nonvegdiet-data/${formattedDate}/`
+              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-nonvegdiet-data/${formattedDate}/`
             );
+            console.log(`Response for patient ${patientId} (Non-Veg):`, response.data);
             newNonVegData[patientId] = response.data.exists;
           } catch (error) {
-            newNonVegData[patientId] = false; // Default to false if there's an error
+            console.error(`Error fetching non-veg data for patient ${patientId}:`, error);
+            newNonVegData[patientId] = false;
           }
         })
       );
 
       setNonVegData(newNonVegData);
+      console.log("Updated Non-Veg Data:", newNonVegData);
     } catch (error) {
-      console.error("Error fetching sleep data:", error);
+      console.error("Error fetching non-veg data:", error);
     }
   };
 
   const fetchWaterDataForAllPatients = async (selectedDate: Date) => {
     try {
-      const formattedDate = selectedDate.toISOString().split("T")[0]; // Format date as yyyy-mm-dd
-      const newwaterData: Record<string, boolean> = {};
+      const formattedDate = selectedDate.toISOString().split("T")[0];
+      const newWaterData: Record<string, boolean> = {};
 
       await Promise.all(
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://indheart.pinesphere.in/patient/patient/${patientId}/all-water-data/${formattedDate}`
+              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-water-data/${formattedDate}/`
             );
-            newwaterData[patientId] = response.data.exists;
+            console.log(`Response for patient ${patientId} (Water):`, response.data);
+            newWaterData[patientId] = response.data.exists;
           } catch (error) {
-            newwaterData[patientId] = false; // Default to false if there's an error
+            console.error(`Error fetching water data for patient ${patientId}:`, error);
+            newWaterData[patientId] = false;
           }
         })
       );
 
-      setWaterData(newwaterData);
+      setWaterData(newWaterData);
+      console.log("Updated Water Data:", newWaterData);
     } catch (error) {
       console.error("Error fetching water data:", error);
     }
   };
 
-  useEffect(() => {
-    fetchWaterDataForAllPatients(date); // Fetch data when the component mounts
-  }, [patientIds]);
-
   const fetchExerciseDataForAllPatients = async (selectedDate: Date) => {
     try {
-      const formattedDate = selectedDate.toISOString().split("T")[0]; // Format date as yyyy-mm-dd
-      const newexerciseData: Record<string, boolean> = {};
+      const formattedDate = selectedDate.toISOString().split("T")[0];
+      const newExerciseData: Record<string, boolean> = {};
 
       await Promise.all(
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://indheart.pinesphere.in/patient/patient/${patientId}/all-dailyexercise-data/${formattedDate}`
+              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-dailyexercise-data/${formattedDate}/`
             );
-            newexerciseData[patientId] = response.data.exists;
+            console.log(`Response for patient ${patientId} (Exercise):`, response.data);
+            newExerciseData[patientId] = response.data.exists;
           } catch (error) {
-            newexerciseData[patientId] = false; // Default to false if there's an error
+            console.error(`Error fetching exercise data for patient ${patientId}:`, error);
+            newExerciseData[patientId] = false;
           }
         })
       );
 
-      setExerciseData(newexerciseData);
+      setExerciseData(newExerciseData);
+      console.log("Updated Exercise Data:", newExerciseData);
     } catch (error) {
       console.error("Error fetching exercise data:", error);
     }
   };
 
-  useEffect(() => {
-    fetchExerciseDataForAllPatients(date); // Fetch data when the component mounts
-  }, [patientIds]);
-
   const fetchWalkingDataForAllPatients = async (selectedDate: Date) => {
     try {
-      const formattedDate = selectedDate.toISOString().split("T")[0]; // Format date as yyyy-mm-dd
-      const newwalkingData: Record<string, boolean> = {};
+      const formattedDate = selectedDate.toISOString().split("T")[0];
+      const newWalkingData: Record<string, boolean> = {};
 
       await Promise.all(
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://indheart.pinesphere.in/patient/patient/${patientId}/all-walking-data/${formattedDate}`
+              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-walking-data/${formattedDate}/`
             );
-            newwalkingData[patientId] = response.data.exists;
+            console.log(`Response for patient ${patientId} (Walking):`, response.data);
+            newWalkingData[patientId] = response.data.exists;
           } catch (error) {
-            newwalkingData[patientId] = false; // Default to false if there's an error
+            console.error(`Error fetching walking data for patient ${patientId}:`, error);
+            newWalkingData[patientId] = false;
           }
         })
       );
 
-      setwalkData(newwalkingData);
+      setwalkData(newWalkingData);
+      console.log("Updated Walking Data:", newWalkingData);
     } catch (error) {
       console.error("Error fetching walking data:", error);
     }
   };
 
-  useEffect(() => {
-    fetchWalkingDataForAllPatients(date); // Fetch data when the component mounts
-  }, [patientIds]);
-
   const fetchYogaDataForAllPatients = async (selectedDate: Date) => {
     try {
-      const formattedDate = selectedDate.toISOString().split("T")[0]; // Format date as yyyy-mm-dd
-      const newyogaData: Record<string, boolean> = {};
+      const formattedDate = selectedDate.toISOString().split("T")[0];
+      const newYogaData: Record<string, boolean> = {};
 
       await Promise.all(
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://indheart.pinesphere.in/patient/patient/${patientId}/all-yoga-data/${formattedDate}`
+              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-yoga-data/${formattedDate}/`
             );
-            newyogaData[patientId] = response.data.exists;
+            console.log(`Response for patient ${patientId} (Yoga):`, response.data);
+            newYogaData[patientId] = response.data.exists;
           } catch (error) {
-            newyogaData[patientId] = false; // Default to false if there's an error
+            console.error(`Error fetching yoga data for patient ${patientId}:`, error);
+            newYogaData[patientId] = false;
           }
         })
       );
 
-      setyogaData(newyogaData);
+      setyogaData(newYogaData);
+      console.log("Updated Yoga Data:", newYogaData);
     } catch (error) {
-      console.error("Error fetching sleep data:", error);
+      console.error("Error fetching yoga data:", error);
     }
   };
 
-  useEffect(() => {
-    fetchYogaDataForAllPatients(date); // Fetch data when the component mounts
-  }, [patientIds]);
-
   const fetchMedicineForAllPatients = async (selectedDate: Date) => {
     try {
-      const formattedDate = selectedDate.toISOString().split("T")[0]; // Format date as yyyy-mm-dd
-      const newmedicineData: Record<string, boolean> = {};
+      const formattedDate = selectedDate.toISOString().split("T")[0];
+      const newMedicineData: Record<string, boolean> = {};
 
       await Promise.all(
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://indheart.pinesphere.in/patient/patient/${patientId}/all-medicine-data/${formattedDate}`
+              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-medicine-data/${formattedDate}/`
             );
-            newmedicineData[patientId] = response.data.exists;
+            console.log(`Response for patient ${patientId} (Medicine):`, response.data);
+            newMedicineData[patientId] = response.data.exists;
           } catch (error) {
-            newmedicineData[patientId] = false; // Default to false if there's an error
+            console.error(`Error fetching medicine data for patient ${patientId}:`, error);
+            newMedicineData[patientId] = false;
           }
         })
       );
 
-      setmedicineData(newmedicineData);
+      setmedicineData(newMedicineData);
+      console.log("Updated Medicine Data:", newMedicineData);
     } catch (error) {
       console.error("Error fetching medicine data:", error);
     }
   };
 
-  useEffect(() => {
-    fetchMedicineForAllPatients(date); // Fetch data when the component mounts
-  }, [patientIds]);
-
   const fetchLifestyleForAllPatients = async (selectedDate: Date) => {
     try {
-      const formattedDate = selectedDate.toISOString().split("T")[0]; // Format date as yyyy-mm-dd
-      const newlifestyleData: Record<string, boolean> = {};
+      const formattedDate = selectedDate.toISOString().split("T")[0];
+      const newLifestyleData: Record<string, boolean> = {};
 
       await Promise.all(
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://indheart.pinesphere.in/patient/patient/${patientId}/all-lifestyle-data/${formattedDate}`
+              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-lifestyle-data/${formattedDate}/`
             );
-            newlifestyleData[patientId] = response.data.exists;
+            console.log(`Response for patient ${patientId} (Lifestyle):`, response.data);
+            newLifestyleData[patientId] = response.data.exists;
           } catch (error) {
-            newlifestyleData[patientId] = false; // Default to false if there's an error
+            console.error(`Error fetching lifestyle data for patient ${patientId}:`, error);
+            newLifestyleData[patientId] = false;
           }
         })
       );
 
-      setlifestyleData(newlifestyleData);
+      setlifestyleData(newLifestyleData);
+      console.log("Updated Lifestyle Data:", newLifestyleData);
     } catch (error) {
       console.error("Error fetching lifestyle data:", error);
     }
   };
-
-  useEffect(() => {
-    fetchLifestyleForAllPatients(date); // Fetch data when the component mounts
-  }, [patientIds]);
 
   const filteredData = patientIds
     .filter((patientId) => {
@@ -553,7 +798,9 @@ const PatientDailyLogScreen = () => {
 
                 {/* Each Image will be wrapped in a View for better alignment */}
                 <View style={styles.imageContainer}>
-                  <Image
+                  <Image  
+                      key={row.hasSleepData.toString()} 
+
                     source={
                       row.hasSleepData
                         ? require("../../assets/images/check.png")
@@ -564,7 +811,9 @@ const PatientDailyLogScreen = () => {
                 </View>
 
                 <View style={styles.imageContainer}>
+                
                   <Image
+                    key={row.hasVegData.toString()}
                     source={
                       row.hasVegData
                         ? require("../../assets/images/check.png")
@@ -576,6 +825,7 @@ const PatientDailyLogScreen = () => {
 
                 <View style={styles.imageContainer}>
                   <Image
+                    key={row.hasNonVegData.toString()}
                     source={
                       row.hasNonVegData
                         ? require("../../assets/images/check.png")
@@ -587,6 +837,7 @@ const PatientDailyLogScreen = () => {
 
                 <View style={styles.imageContainer}>
                   <Image
+                    key={row.hasWaterData.toString()}
                     source={
                       row.hasWaterData
                         ? require("../../assets/images/check.png")
@@ -598,6 +849,7 @@ const PatientDailyLogScreen = () => {
 
                 <View style={styles.imageContainer}>
                   <Image
+                    key={row.hasExerciseData.toString()}
                     source={
                       row.hasExerciseData
                         ? require("../../assets/images/check.png")
@@ -609,6 +861,7 @@ const PatientDailyLogScreen = () => {
 
                 <View style={styles.imageContainer}>
                   <Image
+                    key={row.hasMedicineData.toString()}
                     source={
                       row.hasMedicineData
                         ? require("../../assets/images/check.png")
@@ -619,6 +872,7 @@ const PatientDailyLogScreen = () => {
                 </View>
                 <View style={styles.imageContainer}>
                   <Image
+                    key={row.hasWalkData.toString()}
                     source={
                       row.hasWalkData
                         ? require("../../assets/images/check.png")
@@ -630,6 +884,7 @@ const PatientDailyLogScreen = () => {
 
                 <View style={styles.imageContainer}>
                   <Image
+                    key={row.hasYogaData.toString()}
                     source={
                       row.hasYogaData
                         ? require("../../assets/images/check.png")
@@ -641,6 +896,7 @@ const PatientDailyLogScreen = () => {
 
                 <View style={styles.imageContainer}>
                   <Image
+                    key={row.hasLifestyleData.toString()}
                     source={
                       row.hasLifestyleData
                         ? require("../../assets/images/check.png")
@@ -665,6 +921,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     marginTop: 50,
     
+  },
+  statusText: {
+    fontSize: 14,
+    color: "#000",
+    textAlign: "center",
   },
   header: {
     flexDirection: "row",

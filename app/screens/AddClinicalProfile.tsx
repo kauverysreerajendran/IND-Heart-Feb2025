@@ -648,7 +648,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 15,
     paddingHorizontal: 10,
-    fontSize: RFValue(10),
+    fontSize: RFValue(12),
     flex: 2, // Takes up space on the right
     marginTop: 10,
     textAlignVertical: "center",

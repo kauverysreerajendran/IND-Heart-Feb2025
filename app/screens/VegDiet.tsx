@@ -192,8 +192,8 @@ const VegDietPage: React.FC = () => {
   const handleYes = (index: number) => {
     setResponses((prevResponses) =>
       prevResponses.map((response, i) =>
-        i === index ? { ...response, yes: true } : response
-      )
+        i === index ? { ...response, yes: true, quantity: "" } : response
+  )
     );
   };
 
@@ -278,6 +278,7 @@ const VegDietPage: React.FC = () => {
         cooked_vegetables_quantity: responses[1].quantity || 0,
         fresh_salads_quantity: responses[2].quantity || 0,
         green_leafy_vegetables: responses[3].yes || false,
+        green_leafy_quantity: responses[3].quantity || 0, // Add this line
 
         guava_quantity: quantities.guava || 0,
         orange_quantity: quantities.orange || 0,
@@ -511,10 +512,10 @@ const VegDietPage: React.FC = () => {
                     <View style={styles.quantityContainer}>
                       <TextInput
                         style={[styles.quantityInput, { paddingLeft: 25 }]}
-                        placeholder={texts[language].saladQuantityPlaceholder}
+                        placeholder={texts[language].NutrientIntakeQuantityPlaceholder}
                         /* placeholder={
                           card.title === nutrientTitles.crispFreshSalads
-                            ? texts[language].saladQuantityPlaceholder // Special placeholder for Salad
+                            ? texts[language].NutrientIntakeQuantityPlaceholder // Special placeholder for Salad
                             : texts[language].quantityPlaceholder // Default placeholder
                         } */
                         keyboardType="numeric"
@@ -531,9 +532,11 @@ const VegDietPage: React.FC = () => {
                       /> */}
                     </View>
                   )}
+                  
                 </View>
               </View>
             ))}
+            
 
             {/* Fruits Picker */}
 
@@ -719,7 +722,7 @@ const VegDietPage: React.FC = () => {
 
                 <TextInput
                   style={styles.legumeInput}
-                  placeholder={texts[language].saladQuantityPlaceholder}
+                  placeholder={texts[language].NutrientIntakeQuantityPlaceholder}
                   keyboardType="numeric"
                   value={legumes.greenGram}
                   onChangeText={(text) =>
@@ -739,7 +742,7 @@ const VegDietPage: React.FC = () => {
                 </LinearGradient>
                 <TextInput
                   style={styles.legumeInput}
-                  placeholder={texts[language].saladQuantityPlaceholder}
+                  placeholder={texts[language].NutrientIntakeQuantityPlaceholder}
                   keyboardType="numeric"
                   value={legumes.chickpea}
                   onChangeText={(text) =>
@@ -757,7 +760,7 @@ const VegDietPage: React.FC = () => {
                 </LinearGradient>
                 <TextInput
                   style={styles.legumeInput}
-                  placeholder={texts[language].saladQuantityPlaceholder}
+                  placeholder={texts[language].NutrientIntakeQuantityPlaceholder}
                   keyboardType="numeric"
                   value={legumes.soybean}
                   onChangeText={(text) =>
@@ -775,7 +778,7 @@ const VegDietPage: React.FC = () => {
                 </LinearGradient>
                 <TextInput
                   style={styles.legumeInput}
-                  placeholder={texts[language].saladQuantityPlaceholder}
+                  placeholder={texts[language].NutrientIntakeQuantityPlaceholder}
                   keyboardType="numeric"
                   value={legumes.cowpea}
                   onChangeText={(text) =>
@@ -793,7 +796,7 @@ const VegDietPage: React.FC = () => {
                 </LinearGradient>
                 <TextInput
                   style={styles.legumeInput}
-                  placeholder={texts[language].saladQuantityPlaceholder}
+                  placeholder={texts[language].NutrientIntakeQuantityPlaceholder}
                   keyboardType="numeric"
                   value={legumes.channa}
                   onChangeText={(text) =>
@@ -813,7 +816,7 @@ const VegDietPage: React.FC = () => {
                 </LinearGradient>
                 <TextInput
                   style={styles.legumeInput}
-                  placeholder={texts[language].saladQuantityPlaceholder}
+                  placeholder={texts[language].NutrientIntakeQuantityPlaceholder}
                   keyboardType="numeric"
                   value={legumes.kidneybeans}
                   onChangeText={(text) =>
@@ -831,7 +834,7 @@ const VegDietPage: React.FC = () => {
                 </LinearGradient>
                 <TextInput
                   style={styles.legumeInput}
-                  placeholder={texts[language].saladQuantityPlaceholder}
+                  placeholder={texts[language].NutrientIntakeQuantityPlaceholder}
                   keyboardType="numeric"
                   value={legumes.nuts}
                   onChangeText={(text) => handleLegumeCountChange("nuts", text)}
@@ -857,7 +860,7 @@ const VegDietPage: React.FC = () => {
                 />
                 <TextInput
                   style={styles.legumeInputQty}
-                  placeholder={texts[language].saladQuantityPlaceholder} // Ensure language is set correctly
+                  placeholder={texts[language].NutrientIntakeQuantityPlaceholder} // Ensure language is set correctly
                   keyboardType="numeric"
                   value={legumes.qty}
                   onChangeText={(text) => handleLegumeCountChange("qty", text)}
@@ -1060,7 +1063,7 @@ const styles = StyleSheet.create({
     width: "100%",
     textAlign: "center",
     marginTop: 10,
-    fontSize: 10,
+    fontSize: 12,
   },
   quantityIcon: {
     position: "absolute",
@@ -1142,7 +1145,7 @@ const styles = StyleSheet.create({
     borderRadius: 30,
     marginTop: 5,
     marginLeft: 5,
-    fontSize: 10,
+    fontSize: 12,
   },
   orangeContainer: {
     borderRadius: 15,
@@ -1160,7 +1163,7 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
   orangeQty: {
-    fontSize: 10,
+    fontSize: 12,
     width: "38%",
     textAlign: "center",
     right: 0,
@@ -1187,7 +1190,7 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
   appleQty: {
-    fontSize: 10,
+    fontSize: 12,
     width: "38%",
     textAlign: "center",
     left: 180,
@@ -1214,7 +1217,7 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
   grapesQty: {
-    fontSize: 10,
+    fontSize: 12,
     width: "38%",
     textAlign: "center",
     alignItems: "center",
@@ -1243,7 +1246,7 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
   muskmelonQty: {
-    fontSize: 10,
+    fontSize: 12,
     width: "38%",
     textAlign: "center",
     left: 200,
@@ -1270,7 +1273,7 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
   watermelonQty: {
-    fontSize: 10,
+    fontSize: 12,
     width: "38%",
     textAlign: "center",
     right: 0,
@@ -1474,7 +1477,7 @@ const styles = StyleSheet.create({
  
   
   legumeInputOther: {
-    fontSize: 10,
+    fontSize: 12,
     width: "100%",
     height: 60,
     borderWidth: 1,
@@ -1495,7 +1498,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   legumeInputQty: {
-    fontSize: 10,
+    fontSize: 12,
     width: "100%",
     height: 40,
     borderWidth: 1,
@@ -1517,7 +1520,7 @@ const styles = StyleSheet.create({
     marginBottom: 8, // Space between inputs
   },
   othersFruitName: {
-    fontSize: 8,
+    fontSize: 12,
     flex: 1,
     borderWidth: 1,
     borderColor: "#ccc",
@@ -1530,7 +1533,7 @@ const styles = StyleSheet.create({
   },
 
   othersQtyss: {
-    fontSize: 8,
+    fontSize: 12,
     width: 80, // Fixed width for quantity input (this is a narrow width)
     borderWidth: 1,
     borderColor: "#ccc",

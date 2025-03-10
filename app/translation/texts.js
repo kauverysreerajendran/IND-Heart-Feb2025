@@ -445,14 +445,14 @@ const texts = {
     noMedicationDataText: "No medication data available for",
     specifyReason: "Specify Reason:",
     successExercise: "Your Exercise details have been saved!",
-    saladQuantityPlaceholder: "Cups",
+    NutrientIntakeQuantityPlaceholder: "Cups",
     quantityPlaceholder: "Qty",
     unexpectedUserType: "Unexpected User Type Error",
   },
 
   tamil: {
     quantityPlaceholder: "அளவு",
-    saladQuantityPlaceholder: "கப்",
+    NutrientIntakeQuantityPlaceholder: "கப்",
     successExercise: "உங்கள் உடல் நலம் விவரங்களைச் சேமிக்கப்பட்டன!",
     specifyReason: "காரணத்தை குறிக்கவும்:",
     specifyDifficulties: "சிக்கல்களை குறிக்கவும்...",
