@@ -610,7 +610,7 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   fieldName: {
-    fontSize: 18,
+    fontSize: 16,
     marginBottom: 5,
   },
   textInput: {
@@ -634,7 +634,7 @@ const styles = StyleSheet.create({
   },
 
   label: {
-    fontSize: RFValue(16),
+    fontSize: RFValue(14),
     fontWeight: "500",
     flex: 1,
   },

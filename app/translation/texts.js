@@ -58,7 +58,7 @@ const texts = {
     bedtimeRegularity: "Bedtime Regularity",
     selectSleepInterventions: "Select Your Sleep Interventions",
     selectSleepBreaks: "Select Number of Sleep Breaks",
-    enterNapDuration: "Enter Duration of Day Time Sleep",
+    enterNapDuration: "Enter Duration of Sleep",
     submit: "Submit",
     clear: "Clear",
     cancel: "Cancel",
