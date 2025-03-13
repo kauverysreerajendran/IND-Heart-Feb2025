@@ -20,8 +20,6 @@ import Icon from "react-native-vector-icons/FontAwesome";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import CustomAlert from "../components/CustomAlert";
-import { PermissionsAndroid } from "react-native";
-import RNFS from 'react-native-fs';
 
 // Custom Text component to disable font scaling globally
 const Text = (props: any) => {
@@ -119,104 +117,49 @@ const ViewPatientTablePage: React.FC = () => {
     navigation.navigate("AddMetabolicProfilePage");
   };
 
-  const downloadXLSXFile = async (blob: Blob, fileName: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      try {
-        console.log("Starting downloadXLSXFile function...");
-        console.log("Android Platform Version:", Platform.Version);
-  
-        // Convert Blob to Base64 using FileReader
-        const reader = new FileReader();
-        reader.readAsDataURL(blob);
-        
-        reader.onloadend = async () => {
-          try {
-            console.log("FileReader loaded successfully");
-            // Extract Base64 content (remove data URL prefix)
-            const fullBase64 = reader.result as string;
-            const base64Data = fullBase64.split(',')[1] || fullBase64.replace(/^data:.*;base64,/, '');
-  
-            // Define the file path based on Android version
-            let filePath: string;
-            
-            if (Platform.OS === 'android') {
-              if (Platform.Version >= 29) { // Android 10+
-                console.log("Using Downloads directory for Android 10+");
-                filePath = `${RNFS.DownloadDirectoryPath}/${fileName}`;
-              } else {
-                console.log("Using external storage for older Android versions");
-                filePath = `${RNFS.ExternalStorageDirectoryPath}/Download/${fileName}`;
-              }
-            } else {
-              // iOS
-              filePath = `${RNFS.DocumentDirectoryPath}/${fileName}`;
-            }
-            
-            console.log("File path will be:", filePath);
-  
-            // Write the file
-            console.log("Writing file...");
-            await RNFS.writeFile(filePath, base64Data, "base64");
-            
-            // Verify file was written
-            const fileExists = await RNFS.exists(filePath);
-            console.log("File exists after writing?", fileExists);
-            
-            if (!fileExists) {
-              throw new Error("File was not created successfully");
-            }
-  
-            console.log("File downloaded successfully at:", filePath);
-            resolve(filePath); // Return the file path on success
-          } catch (error) {
-            console.error("Error in file processing DETAILS:", error);
-            reject(error);
-          }
-        };
-        
-        reader.onerror = (error) => {
-          console.error("Error reading file:", error);
-          reject(error);
-        };
-      } catch (error) {
-        console.error("Error in download process:", error);
-        reject(error);
-      }
-    });
-  };
+
   const handleExcelDownload = async () => {
     try {
-      const response = await fetch(
-        "https://vs3k4b04-8000.inc1.devtunnels.ms/api/patients/download/"
-      );
-  
-      if (!response.ok) {
-        throw new Error("Failed to download Excel file");
-      }
-  
-      const blob = await response.blob();
-      const base64Data = await blobToBase64(blob);
-      const base64DataWithoutPrefix = base64Data.replace(/^data:.*;base64,/, ''); // Remove the prefix
-      const fileUri = FileSystem.documentDirectory + "patients.xlsx";
-  
-      await FileSystem.writeAsStringAsync(fileUri, base64DataWithoutPrefix, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-  
-      console.log("File saved to:", fileUri);
-  
-      await Sharing.shareAsync(fileUri);
-  
-      setAlertTitle("Download Successful");
-      setAlertMessage("Excel file has been downloaded.");
-    } catch (error) {
-      console.error("Failed to download Excel file:", error);
-      setAlertTitle("Error");
-      setAlertMessage("Failed to download Excel file.");
-    }
-  };
-  
+        console.log("=== Starting Excel download request ===");
 
+        const response = await fetch(
+            "https://vs3k4b04-8000.inc1.devtunnels.ms/api/patients/download/"
+        );
+
+        console.log("Response status:", response.status);
+        console.log("Response headers:", response.headers);
+
+        if (!response.ok) {
+            throw new Error(`Failed to download Excel file. Status: ${response.status}`);
+        }
+
+        const blob = await response.blob();
+        console.log("Blob received:", blob);
+
+        const base64Data = await blobToBase64(blob);
+        console.log("Base64 conversion done.");
+
+        const base64DataWithoutPrefix = base64Data.replace(/^data:.*;base64,/, '');
+        const fileUri = FileSystem.documentDirectory + "patients.xlsx";
+
+        console.log("Saving file to:", fileUri);
+        await FileSystem.writeAsStringAsync(fileUri, base64DataWithoutPrefix, {
+            encoding: FileSystem.EncodingType.Base64,
+        });
+
+        console.log("File saved successfully.");
+        await Sharing.shareAsync(fileUri);
+
+        setAlertTitle("Download Successful");
+        setAlertMessage("Excel file has been downloaded.");
+    } catch (error) {
+        console.error("Error in handleExcelDownload:", error);
+        setAlertTitle("Error");
+        setAlertMessage("Failed to download Excel file.");
+    }
+};
+
+  
   const blobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();

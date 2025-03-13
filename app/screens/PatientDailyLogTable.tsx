@@ -10,6 +10,7 @@ import {
   Platform,
   Modal,
   Alert,
+  PermissionsAndroid,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
@@ -19,9 +20,6 @@ import { Button } from "react-native";
 import * as FileSystem from "expo-file-system";
 import * as Sharing from "expo-sharing";
 import CustomAlert from "../components/CustomAlert";
-import { PermissionsAndroid } from "react-native";
-import RNFS from 'react-native-fs';
-
 
 // Custom Text component to disable font scaling globally 
 const Text = (props: any) => { return <RNText {...props} allowFontScaling={false} />; };
@@ -62,95 +60,31 @@ const PatientDailyLogScreen = () => {
   const [alertMessage, setExcelAlertMessage] = useState('');
 
 
+// ✅ Define this function before calling it
+const requestStoragePermission = async () => {
+  if (Platform.OS !== "android") return true; // Skip for iOS
 
-// Add this function after your blobToBase64 function
-// Update downloadXLSXFile function with more debugging and better storage handling
-const downloadXLSXFile = async (blob: Blob, fileName: string): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    try {
-      console.log("Starting downloadXLSXFile function...");
-      console.log("Android Platform Version:", Platform.Version);
+  if (Platform.Version >= 30) {
+    console.log("Android 11+ detected, using scoped storage.");
+    return true; // Scoped storage allows app-private storage without extra permission
+  }
 
-      // Convert Blob to Base64 using FileReader
-      const reader = new FileReader();
-      reader.readAsDataURL(blob);
-      
-      reader.onloadend = async () => {
-        try {
-          console.log("FileReader loaded successfully");
-          // Extract Base64 content (remove data URL prefix)
-          const fullBase64 = reader.result as string;
-          const base64Data = fullBase64.split(',')[1] || fullBase64.replace(/^data:.*;base64,/, '');
-
-          // Define the file path based on Android version using fixed folder name
-          const folderName = "ind_heart"; // Fixed folder name
-          let dirPath: string;
-          
-          if (Platform.OS === 'android') {
-            if (Platform.Version >= 29) { // Android 10+
-              console.log("Using app-specific directory for Android 10+");
-              // Use app-specific directory that doesn't require special permissions
-              dirPath = `${RNFS.ExternalCachesDirectoryPath}/${folderName}`;
-            } else {
-              console.log("Using external storage for older Android versions");
-              dirPath = `${RNFS.ExternalStorageDirectoryPath}/${folderName}`;
-            }
-          } else {
-            // iOS
-            dirPath = `${RNFS.DocumentDirectoryPath}/${folderName}`;
-          }
-          
-          console.log("Using directory path:", dirPath);
-          
-          // Ensure directory exists
-          try {
-            console.log("Checking if directory exists:", dirPath);
-            const dirExists = await RNFS.exists(dirPath);
-            console.log("Directory exists?", dirExists);
-            
-            if (!dirExists) {
-              console.log("Creating directory:", dirPath);
-              await RNFS.mkdir(dirPath);
-              console.log("Directory created successfully");
-            }
-          } catch (dirError) {
-            console.error("DETAILED Directory creation error:", dirError);
-            throw dirError;
-          }
-
-          const filePath = `${dirPath}/${fileName}`;
-          console.log("File path will be:", filePath);
-
-          // Write the file
-          console.log("Writing file...");
-          await RNFS.writeFile(filePath, base64Data, "base64");
-          
-          // Verify file was written
-          const fileExists = await RNFS.exists(filePath);
-          console.log("File exists after writing?", fileExists);
-          
-          if (!fileExists) {
-            throw new Error("File was not created successfully");
-          }
-
-          console.log("File downloaded successfully at:", filePath);
-          resolve(filePath); // Return the file path on success
-        } catch (error) {
-          console.error("Error in file processing DETAILS:", error);
-          reject(error);
-        }
-      };
-      
-      reader.onerror = (error) => {
-        console.error("Error reading file:", error);
-        reject(error);
-      };
-    } catch (error) {
-      console.error("Error in download process:", error);
-      reject(error);
-    }
-  });
+  try {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
+      {
+        title: "Storage Permission",
+        message: "App needs access to storage to download files.",
+        buttonPositive: "OK",
+      }
+    );
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+  } catch (err) {
+    console.warn("Storage permission error:", err);
+    return false;
+  }
 };
+
 
   // Fetch all data functions here
   const fetchDataForAllPatients = async () => {
@@ -202,206 +136,73 @@ const downloadXLSXFile = async (blob: Blob, fileName: string): Promise<string> =
     }
   }, [patientIds]);
 
-  
- /*  const handleExportPatientDataDownload = async () => {
-    try {
-      const response = await fetch(
-        "https://vs3k4b04-8000.inc1.devtunnels.ms/patient/export-patient-data/"
-      );
-  
-      if (!response.ok) {
-        throw new Error("Failed to download Excel file");
-      }
-  
-      const blob = await response.blob();
-      const base64Data = await blobToBase64(blob);
-      const base64DataWithoutPrefix = base64Data.replace(/^data:.*;base64,/, ''); // Remove the prefix
-      const fileUri = FileSystem.documentDirectory + "exported_patient_data.xlsx";
-  
-      await FileSystem.writeAsStringAsync(fileUri, base64DataWithoutPrefix, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-  
-      console.log("File saved to:", fileUri);
-  
-      await Sharing.shareAsync(fileUri);
-  
-      setExcelAlertTitle("Download Successful");
-      setExcelAlertMessage("Excel file has been downloaded.");
-    } catch (error) {
-      console.error("Failed to download Excel file:", error);
-      setExcelAlertTitle("Error");
-      setExcelAlertMessage("Failed to download Excel file.");
-    }
-  }; */
- /*  const handleExportPatientDataDownload = async () => {
-    // Internal permission request function
-    const requestPermission = async () => {
-      try {
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-          {
-            title: "Storage Permission",
-            message: "App needs access to your storage to download files",
-            buttonNeutral: "Ask Me Later",
-            buttonNegative: "Cancel",
-            buttonPositive: "OK"
-          }
-        );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
-      } catch (err) {
-        console.error(err);
-        return false;
-      }
-    };
-  
-    // Request permission first
-    const hasPermission = await requestPermission();
-    if (!hasPermission) {
-      setExcelAlertTitle("Permission Denied");
-      setExcelAlertMessage("Storage permission is required to download files");
-      setAlertVisible(true);
-      return;
-    }
-    
-    try {
-      const response = await fetch(
-        "https://vs3k4b04-8000.inc1.devtunnels.ms/patient/export-patient-data/"
-      );
-  
-      if (!response.ok) {
-        throw new Error("Failed to download Excel file");
-      }
-  
-      const blob = await response.blob();
-      
-      // Generate a timestamped filename for uniqueness
-      const timestamp = new Date().getTime();
-      const fileName = `patient_data_${timestamp}.xlsx`;
-      
-      // Use the new function to handle the download
-      const filePath = await downloadXLSXFile(blob, fileName);
-      
-      const appName = "INDHeart";
-      
-      // Show success alert
-      setExcelAlertTitle("Download Successful");
-      setExcelAlertMessage(`Excel file downloaded to:\n${appName}/docs/${fileName}`);
-      setAlertVisible(true);
-      
-    } catch (error) {
-      console.error("Failed to download Excel file:", error);
-      setExcelAlertTitle("Error");
-      
-      // Type-check the error before accessing properties
-      let errorMessage = "Failed to download Excel file";
-      if (error instanceof Error) {
-        errorMessage = error.message;
-      }
-      
-      setExcelAlertMessage(errorMessage);
-      setAlertVisible(true);
-    }
-  }; */
-  const handleExportPatientDataDownload = async () => {
-    // Modified permission request that accounts for Android version
-    const requestPermission = async () => {
-      try {
-        // For Android 10+ (API 29+), we use app-specific directories that don't require permission
-        if (Platform.OS === 'android' && Platform.Version >= 29) {
-          console.log("Using app-specific storage (no permission needed for Android 10+)");
-          return true;
-        }
-        
-        console.log("Requesting storage permission for older Android");
-        const granted = await PermissionsAndroid.request(
-          PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
-          {
-            title: "Storage Permission",
-            message: "App needs access to your storage to download files",
-            buttonNeutral: "Ask Me Later",
-            buttonNegative: "Cancel",
-            buttonPositive: "OK"
-          }
-        );
-        return granted === PermissionsAndroid.RESULTS.GRANTED;
-      } catch (err) {
-        console.error("Permission error:", err);
-        return false;
-      }
-    };
-  
-    // Request permission first (only matters for older Android)
-    const hasPermission = await requestPermission();
-    if (!hasPermission && Platform.OS === 'android' && Platform.Version < 29) {
-      setExcelAlertTitle("Permission Denied");
-      setExcelAlertMessage("Storage permission is required to download files");
-      setAlertVisible(true);
-      return;
-    }
-    
-    try {
-      console.log("Starting file download process...");
-      const response = await fetch(
-        "https://vs3k4b04-8000.inc1.devtunnels.ms/patient/export-patient-data/"
-      );
-  
-      if (!response.ok) {
-        throw new Error(`Failed to download Excel file (${response.status})`);
-      }
-  
-      const blob = await response.blob();
-      console.log("Got response blob, size:", blob.size);
-      
-      // Generate a timestamped filename for uniqueness
-      const timestamp = new Date().getTime();
-      const fileName = `patient_data_${timestamp}.xlsx`;
-      
-      // Define folder name here as well so it's in scope
-      const folderName = "ind_heart";
-      
-      // Use the new function to handle the download
-      const filePath = await downloadXLSXFile(blob, fileName);
-      console.log("Download completed successfully to:", filePath);
-      
-      // Show success alert with appropriate message based on Android version
-      setExcelAlertTitle("Download Successful");
-      
-      if (Platform.OS === 'android' && Platform.Version >= 29) {
-        // For Android 10+ with scoped storage, show a simpler message
-        setExcelAlertMessage(`Excel file downloaded to ${folderName}.\n\nFile: ${fileName}`);
-      } else {
-        // For older Android versions, show the traditional path
-        setExcelAlertMessage(`Excel file downloaded to:\n${folderName}/${fileName}`);
-      }
-      
-      setAlertVisible(true);
-      
-    } catch (error) {
-      console.error("Download failed with detailed error:", error);
-      setExcelAlertTitle("Error");
-      
-      // Type-check the error before accessing properties
-      let errorMessage = "Failed to download Excel file";
-      if (error instanceof Error) {
-        errorMessage = `${error.message}`;
-      }
-      
-      setExcelAlertMessage(errorMessage);
-      setAlertVisible(true);
-    }
-  };
-
+ 
+  // ✅ Helper function: Convert Blob to Base64 properly
   const blobToBase64 = (blob: Blob): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        resolve(reader.result as string);
-      };
+      reader.onloadend = () => resolve(reader.result?.toString().split(",")[1] ?? "");
       reader.onerror = reject;
       reader.readAsDataURL(blob);
     });
   };
+  
+  // ✅ Main function: Handle Download
+  const handleExportPatientDataDownload = async () => {
+    try {
+      console.log("=== Starting Excel download request ===");
+  
+      // ✅ Request Storage Permission Before Downloading
+      const hasPermission = await requestStoragePermission();
+      if (!hasPermission) {
+        console.error("Storage permission denied. Cannot download file.");
+        Alert.alert("Permission Denied", "You must allow storage access to download files.");
+        return;
+      }
+  
+      // ✅ Fetch Excel File
+      const response = await fetch(
+        "https://vs3k4b04-8000.inc1.devtunnels.ms/patient/export-patient-data/"
+      );
+  
+      console.log("Response status:", response.status);
+      if (!response.ok) {
+        throw new Error(`Failed to download Excel file. Status: ${response.status}`);
+      }
+  
+      const blob = await response.blob();
+      console.log("Blob received, size:", blob.size);
+  
+      // ✅ Convert Blob to Base64 Before Saving
+      const base64Data = await blobToBase64(blob);
+      console.log("Base64 conversion successful.");
+  
+      // ✅ Save File to Correct Location
+      const fileUri = `${FileSystem.cacheDirectory}exported_patient_data.xlsx`;
+      console.log("Saving file to:", fileUri);
+  
+      await FileSystem.writeAsStringAsync(fileUri, base64Data, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
+  
+      // ✅ Check If File Exists Before Sharing
+      const fileExists = await FileSystem.getInfoAsync(fileUri);
+      console.log("File exists?", fileExists.exists);
+  
+      if (fileExists.exists) {
+        console.log("File exists. Sharing now...");
+        await Sharing.shareAsync(fileUri);
+      } else {
+        throw new Error("File was not saved correctly.");
+      }
+  
+      Alert.alert("Download Successful", "Excel file has been downloaded.");
+    } catch (error) {
+      console.error("Error in handleExportPatientDataDownload:", error);
+      Alert.alert("Download Failed", "An error occurred while downloading the Excel file.");
+    }
+  };
+  
 
   const handlePatientSelect = (patientId: string) => {
     setSelectedPatientId(patientId); // Store the selected patient ID

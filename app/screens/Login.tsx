@@ -120,6 +120,12 @@ const LoginPage: React.FC = () => {
             <Text style={styles.welcomeText}>{languageText.welcome}</Text>
             <Text style={styles.appText}>{languageText.appName}</Text>
           </View>
+           {/* Temp Test Link */}
+           <TouchableOpacity
+              onPress={() => navigation.navigate("TempTestNavigation")}
+            >
+              <Text style={styles.tempTestLink}>Test Link</Text>
+            </TouchableOpacity>
           <View style={styles.imageContainer}>
             <Animated.Image
               source={require("../../assets/images/login.png")}
@@ -155,7 +161,9 @@ const LoginPage: React.FC = () => {
                       : "Translate to English"}
                   </Text>
                 </TouchableOpacity>
+             
               </View>
+                 
             </View>
           </View>
         </ScrollView>
@@ -244,6 +252,14 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     textAlign: "center",
     marginTop: 30,
+  },
+  tempTestLink: {
+    top: 500,
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#c42482",
+    textAlign: "center",
+    textDecorationLine: "underline",
   },
 });
 

@@ -7,9 +7,9 @@ import {
   Image,
   SafeAreaView,
   StatusBar,
-  Button
+  Button,
+  
 } from "react-native";
-
 import React, { useState } from "react";
 import Icon from "react-native-vector-icons/MaterialIcons";
 import { useNavigation } from "@react-navigation/native";
@@ -18,10 +18,10 @@ import { RootStackParamList } from "../../type";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import texts from "../translation/texts";
 
-
-// Custom Text component to disable font scaling globally 
-const Text = (props: any) => { return <RNText {...props} allowFontScaling={false} />; };
-
+// Custom Text component to disable font scaling globally
+const Text = (props: any) => {
+  return <RNText {...props} allowFontScaling={false} />;
+};
 
 export default function Insights() {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
@@ -32,6 +32,37 @@ export default function Insights() {
   const languageText = isTranslatingToTamil ? texts.tamil : texts.english;
   const [currentPage, setCurrentPage] = useState(0);
   const contentPerPage = 1; // Number of sections per page
+
+
+const [expanded, setExpanded] = useState(false);
+const [selectedCardIndex, setSelectedCardIndex] = useState<number | null>(null);
+
+const mutedRainbowColors = [
+  '#cb9e96', '#8fa9b8', '#cbacc2', '#86cab9',
+  '#d6b7aa', '#b88893', '#a5ba9f', '#ccd09a',
+  '#c6c6ac', '#99ba7d', '#997dae', '#90cbbb'
+];
+
+// 2. Add this function to your component (before the return statement)
+const getCardIcon = (index: number) => {
+  const icons = [
+    require('../../assets/images/heartAttack.png'),
+    require('../../assets/images/heartAttackFactors.png'),
+    require('../../assets/images/patientCard.png'),
+    require('../../assets/images/heart.png'),
+    require('../../assets/images/precaution.png'),
+    require('../../assets/images/lifeStyles.png'),
+    require('../../assets/images/walk.png'),
+    require('../../assets/images/dietCard.png'),
+    require('../../assets/images/myFoodCard.png'),
+    require('../../assets/images/heart.png'),
+    require('../../assets/images/heart.png'),
+    require('../../assets/images/heart.png')
+  ];
+  return icons[index % icons.length];
+};
+
+
   const pages = [
     {
       title: languageText.whatHeartAttack,
@@ -46,7 +77,7 @@ export default function Insights() {
     {
       title: languageText.cholestrolQuestion,
       content: `${languageText.cholestrolSub}\n\n• ${languageText.cholestrolTypeOne}: ${languageText.cholestrolOne}\n• ${languageText.cholestrolTypeTwo}: ${languageText.cholestrolTwo}`,
-      image: null, // Add image if applicable
+      image: null,
     },
     {
       title: languageText.treatmentTitle,
@@ -92,10 +123,9 @@ export default function Insights() {
       title: languageText.avoidaandsTitle,
       content: `• ${languageText.avoidandsOne}\n• ${languageText.avoidandsTwo}\n• ${languageText.avoidandsThree}\n• ${languageText.avoidandsFour}`,
       image: require("../../assets/images/noSmokeImg.jpg"),
-      
     },
   ];
-  
+
   // Handle Translation
   const handleTranslate = () => {
     setIsTranslatingToTamil(!isTranslatingToTamil);
@@ -119,19 +149,18 @@ export default function Insights() {
   };
 
   // Function to navigate to the previous page
-const goToPreviousPage = () => {
-  if (currentPage > 0) {
-    setCurrentPage(currentPage - 1);
-  }
-};
+  const goToPreviousPage = () => {
+    if (currentPage > 0) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
-// Function to navigate to the next page
-const goToNextPage = () => {
-  if (currentPage < pages.length - 1) {
-    setCurrentPage(currentPage + 1);
-  }
-};
-
+  // Function to navigate to the next page
+  const goToNextPage = () => {
+    if (currentPage < pages.length - 1) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
 
   return (
     <SafeAreaProvider>
@@ -159,7 +188,7 @@ const goToNextPage = () => {
               >
                 <Icon
                   name={isTranslatingToTamil ? "language" : "translate"}
-                  size={20}
+                  size={18}
                   color="#4169E1"
                 />
 
@@ -174,19 +203,19 @@ const goToNextPage = () => {
 
           {/* Icon Section */}
           <View style={styles.iconContainer}>
-            {/* <View style={styles.iconWrapper}>
-              <View style={styles.iconBackground}>
-                <Icon name="accessibility" size={24} color="#fff" />
-              </View>
-              <Text style={styles.iconLabel}>{languageText.exercise}</Text>
-            </View> */}
-            {/* Update the dietary icon to be clickable */}
             <TouchableOpacity
               onPress={handleDietaryPress}
               style={styles.iconWrapper}
             >
-              <View style={styles.iconBackground}>
-                <Icon name="restaurant-menu" size={24} color="#fff" />
+              <View
+                style={[styles.iconBackground, { backgroundColor: "#bdc9ab" }]}
+              >
+                {/* <Icon name="restaurant-menu" size={26} color="#d6187a" /> */}
+                <Image 
+  source={require('../../assets/gif/diet.gif')}
+  style={styles.iconGif}
+/>
+
               </View>
               <Text style={styles.iconLabel}>{languageText.dietary}</Text>
             </TouchableOpacity>
@@ -195,8 +224,14 @@ const goToNextPage = () => {
               onPress={handleMyFoodPress}
               style={styles.iconWrapper}
             >
-              <View style={styles.iconBackground}>
-                <Icon name="fastfood" size={24} color="#fff" />
+              <View
+                style={[styles.iconBackground, { backgroundColor: "#deb7b5" }]}
+              >
+                {/* <Icon name="fastfood" size={26} color="#f37521" /> */}
+                <Image 
+  source={require('../../assets/gif/myfood.gif')}
+  style={styles.iconGif}
+/>
               </View>
               <Text style={styles.iconLabel}>{languageText.myFood}</Text>
             </TouchableOpacity>
@@ -205,20 +240,30 @@ const goToNextPage = () => {
               onPress={handleSupportPress}
               style={styles.iconWrapper}
             >
-              <View style={styles.iconBackground}>
-                <Icon name="info" size={24} color="#fff" />
+              <View
+                style={[styles.iconBackground, { backgroundColor: "#bccad7" }]}
+              >
+                {/* <Icon name="info" size={26} color="#2196F3" /> */}
+                <Image 
+  source={require('../../assets/gif/support.gif')}
+  style={styles.iconGif}
+/>
               </View>
               <Text style={styles.iconLabel}>{languageText.support}</Text>
             </TouchableOpacity>
           </View>
           {/* Scrollable Content */}
-          <ScrollView
+          {/* <ScrollView
             contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
           >
-            <Text style={styles.subContentTitle}>{pages[currentPage].title}</Text>
+            <Text style={styles.subContentTitle}>
+              {pages[currentPage].title}
+            </Text>
             <View style={styles.mainContainer}>
-              <Text style={styles.containerOne}>{pages[currentPage].content}</Text>
+              <Text style={styles.containerOne}>
+                {pages[currentPage].content}
+              </Text>
               {pages[currentPage].image && (
                 <Image
                   source={pages[currentPage].image}
@@ -226,67 +271,76 @@ const goToNextPage = () => {
                 />
               )}
             </View>
-          </ScrollView>
+          </ScrollView> */}
 
-           {/* Pagination Controls */}
-           <View style={styles.paginationContainer}>
-    {/* Custom Button for "Previous" */}
-    <TouchableOpacity
-      onPress={goToPreviousPage}
-      disabled={currentPage === 0}
-      style={[
-        styles.button,
-        { backgroundColor: currentPage === 0 ? "#ccc" : "#444444" },
-      ]}
-    >
-      <Text style={[styles.buttonText, { allowFontScaling: false }]}>
-        Previous
-      </Text>
-    </TouchableOpacity>
+  {/* New Scrollable Content */}
+<ScrollView
+  contentContainerStyle={styles.cardScrollContainer}
+  showsVerticalScrollIndicator={false}
+>
 
-    {/* Custom Button for "Next" */}
-    <TouchableOpacity
-      onPress={goToNextPage}
-      disabled={currentPage === pages.length - 1}
-      style={[
-        styles.button,
-        {
-          backgroundColor:
-            currentPage === pages.length - 1 ? "#ccc" : "#444444",
-          opacity: currentPage === pages.length - 1 ? 0.5 : 1, // Add opacity for disabled state
-        },
-      ]}
-    >
-      <Text style={[styles.buttonText, { allowFontScaling: false }]}>
-        Next
-      </Text>
-    </TouchableOpacity>
-  </View>
-
-  <Text style={styles.pageIndicator}>
-    Page {currentPage + 1} of {pages.length}
-  </Text>
-</View>
-      <View style={styles.buttonContainer}>
-       {/* Custom Button for "Next" */}
-  <TouchableOpacity
-    onPress={goToNextPage}
-    disabled={currentPage === pages.length - 1}
-    style={[
-      styles.button,
-      {
-        backgroundColor:
-          currentPage === pages.length - 1 ? "#ccc" : "transparent", // Make the button visible
-        opacity: currentPage === pages.length - 1 ? 0.5 : 1, // Add opacity for disabled state
-      },
-    ]}
+{pages.slice(0, expanded ? pages.length : 4).map((page, index) => (
+  <TouchableOpacity 
+    key={index}
+    style={[styles.contentCard, { backgroundColor: mutedRainbowColors[index % mutedRainbowColors.length] }]}
+    onPress={() => setSelectedCardIndex(selectedCardIndex === index ? null : index)}
+    activeOpacity={0.9}
   >
+    <View style={styles.cardHeader}>
+      <Image 
+        source={getCardIcon(index)}
+        style={styles.cardThumbnail} 
+      />
+      <Text style={styles.cardTitle}>{page.title}</Text>
+    </View>
     
+    {selectedCardIndex === index && (
+      <View style={styles.expandedCardContent}>
+        <Text style={styles.cardContent}>{page.content}</Text>
+        {page.image && (
+          <Image source={page.image} style={styles.cardImage} />
+        )}
+      </View>
+    )}
   </TouchableOpacity>
-</View>
-        
-      
-        
+))}
+  
+  {pages.length > 4 && (
+    <TouchableOpacity 
+      style={styles.expandButton}
+      onPress={() => setExpanded(!expanded)}
+    >
+      <Text style={styles.expandButtonText}>
+        {expanded ? "View Less" : "View More"}
+      </Text>
+    </TouchableOpacity>
+  )}
+</ScrollView>
+
+          {/* Pagination Controls */}
+          
+
+          {/* <Text style={styles.pageIndicator}>
+            Page {currentPage + 1} of {pages.length}
+          </Text> */}
+        </View>
+        <View style={styles.buttonContainer}>
+          {/* Custom Button for "Next" */}
+          <TouchableOpacity
+            onPress={goToNextPage}
+            disabled={currentPage === pages.length - 1}
+            style={[
+              styles.button,
+              {
+                backgroundColor:
+                  currentPage === pages.length - 1 ? "#ccc" : "transparent", // Make the button visible
+                opacity: currentPage === pages.length - 1 ? 0.5 : 1, // Add opacity for disabled state
+              },
+            ]}
+          >
+
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     </SafeAreaProvider>
   );
@@ -299,42 +353,43 @@ const styles = StyleSheet.create({
     marginTop: 40,
     marginBottom: -50,
   },
+  iconGif: {
+    width: 80,
+    height: 80,
+    resizeMode: 'contain',
+  },
   paginationContainer: {
     flexDirection: "row", // Ensure the buttons are aligned horizontally in a row
     justifyContent: "flex-start", // Align both buttons to the left side
     alignItems: "center",
     padding: 10,
   },
-  
+
   pageIndicator: {
     fontSize: 13,
     fontWeight: "bold",
     textAlign: "center",
     marginLeft: 20,
-    
   },
-  
+
   button: {
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
     marginRight: 150, // Add some spacing between the "Previous" and "Next" buttons
   },
-  
+
   buttonText: {
     color: "#ffffff",
     fontSize: 16,
     textAlign: "center",
   },
-  
-  
+
   buttonContainer: {
     justifyContent: "center", // Ensures the button is centered horizontally
     alignItems: "center", // Ensures the button is centered vertically
     marginTop: 20, // Provides spacing between the page indicator and the Next button
   },
-  
-
 
   safeArea: {
     flex: 1,
@@ -342,19 +397,17 @@ const styles = StyleSheet.create({
   },
   translateContainer: {
     position: "absolute",
-
     marginLeft: 180,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "transparent",
     paddingHorizontal: 10,
   },
-  
 
   translateButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fefefe",
+    backgroundColor: "#f5f5f5",
     paddingVertical: 3,
     paddingHorizontal: 10,
     borderRadius: 15,
@@ -363,12 +416,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
-    marginLeft: 5,
+    marginLeft: 45,
   },
 
   buttonTranslateText: {
     color: "#4169E1",
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: "600",
     textAlign: "center",
     marginLeft: 6,
@@ -405,11 +458,17 @@ const styles = StyleSheet.create({
     width: "20%",
   },
   iconBackground: {
-    backgroundColor: "#343434",
-    borderRadius: 30,
-    padding: 10,
+    backgroundColor: "#d6226d",
+    borderRadius: 5,
+    padding: 15,
     alignItems: "center",
     justifyContent: "center",
+    width: "150%",
+    borderTopRightRadius: 30,
+  borderBottomLeftRadius: 30,
+  borderTopLeftRadius: 5,
+  borderBottomRightRadius: 5
+
   },
   iconLabel: {
     marginTop: 5,
@@ -494,7 +553,7 @@ const styles = StyleSheet.create({
     marginBottom: -10,
     bottom: 15,
   },
-  yogaImageStyle:{
+  yogaImageStyle: {
     width: "100%",
     height: 210,
     borderRadius: 10,
@@ -502,7 +561,7 @@ const styles = StyleSheet.create({
     marginTop: -5,
     bottom: 15,
   },
-  noSmokeImageStyle:{
+  noSmokeImageStyle: {
     width: "100%",
     height: 210,
     borderRadius: 10,
@@ -510,7 +569,7 @@ const styles = StyleSheet.create({
     marginTop: 25,
     bottom: 15,
   },
-  
+
   factorContainer: {
     backgroundColor: "#fff",
     borderRadius: 30,
@@ -576,9 +635,9 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     marginLeft: 10,
     marginTop: 20,
-    textAlign: 'center',
+    textAlign: "center",
   },
-  
+
   precautionsContainer: {
     backgroundColor: "#fff",
     borderRadius: 30,
@@ -648,4 +707,80 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 10,
   },
+
+
+// Add these styles to your StyleSheet
+cardScrollContainer: {
+  paddingBottom: 20,
+},
+contentCard: {
+  borderRadius: 25,
+  padding: 15,
+  marginBottom: 15,
+  shadowOpacity: 0.1,
+  shadowRadius: 4,
+  minHeight: 140,
+  width: '100%',
+},
+cardTitle: {
+  fontSize: 15,
+  paddingRight: 8,
+  paddingLeft: 18,
+  fontWeight: 'bold',
+  color: '#333',
+  flexWrap: 'wrap',
+  flex: 1,
+  paddingHorizontal: 5,
+  lineHeight: 20,
+  flexShrink: 1,
+  marginRight: 5,
+},
+expandedCardContent: {
+  marginTop: 10,
+  width: '100%',
+},
+cardContent: {
+  fontSize: 16,
+  color: '#1b1b1b',
+  fontWeight: '400',
+  marginBottom: 15,
+  
+},
+cardImage: {
+  width: '100%',
+  height: 200,
+  borderRadius: 10,
+  resizeMode: 'contain',
+  alignSelf: 'center',
+},
+expandButton: {
+  backgroundColor: '#ba4b7f',
+  padding: 12,
+  
+  borderRadius: 8,
+  alignItems: 'center',
+  alignSelf: 'center', // Add this line to center the button
+  marginTop: 10,
+  marginBottom: 20,
+},
+expandButtonText: {
+  color: '#ffffff',
+  fontWeight: 'bold',
+  fontSize: 16,
+  alignSelf: 'center', // Add this line to center the button
+
+},
+
+cardHeader: {
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+cardThumbnail: {
+  width: 120,
+  height: 130,
+  borderRadius: 20,
+  marginRight: 0,
+  resizeMode: 'contain',
+},
+
 });

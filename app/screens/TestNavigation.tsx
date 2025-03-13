@@ -90,6 +90,12 @@ const TempTestNavigation: React.FC = () => {
           >
             <Text style={styles.buttonText}>Lifestyle Monitoring</Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => navigation.navigate('Insights')}
+          >
+            <Text style={styles.buttonText}>Insights</Text>
+          </TouchableOpacity>
         </View>
         </ScrollView>
       </SafeAreaView>
