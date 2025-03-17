@@ -16,10 +16,9 @@ import { Ionicons } from "@expo/vector-icons";
 import { useNavigation, NavigationProp } from "@react-navigation/native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import axios from "axios";
-import { Button } from "react-native";
-import * as FileSystem from "expo-file-system";
-import * as Sharing from "expo-sharing";
-import CustomAlert from "../components/CustomAlert";
+import RNFS from "react-native-fs";
+
+
 
 // Custom Text component to disable font scaling globally 
 const Text = (props: any) => { return <RNText {...props} allowFontScaling={false} />; };
@@ -60,13 +59,13 @@ const PatientDailyLogScreen = () => {
   const [alertMessage, setExcelAlertMessage] = useState('');
 
 
-// ✅ Define this function before calling it
+// ✅ Request Storage Permission (Keeps Your Existing Logic Intact)
 const requestStoragePermission = async () => {
-  if (Platform.OS !== "android") return true; // Skip for iOS
+  if (Platform.OS !== "android") return true; // iOS doesn't need permissions
 
   if (Platform.Version >= 30) {
-    console.log("Android 11+ detected, using scoped storage.");
-    return true; // Scoped storage allows app-private storage without extra permission
+    console.log("✅ Android 11+ detected. Using Scoped Storage, no permission needed.");
+    return true; // Scoped Storage allows access to Downloads without extra permission
   }
 
   try {
@@ -74,16 +73,21 @@ const requestStoragePermission = async () => {
       PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
       {
         title: "Storage Permission",
-        message: "App needs access to storage to download files.",
+        message: "App needs access to storage to save Excel files.",
         buttonPositive: "OK",
       }
     );
     return granted === PermissionsAndroid.RESULTS.GRANTED;
   } catch (err) {
-    console.warn("Storage permission error:", err);
+    console.warn("❌ Storage permission error:", err);
     return false;
   }
 };
+
+
+
+
+
 
 
   // Fetch all data functions here
@@ -117,7 +121,7 @@ const requestStoragePermission = async () => {
     const fetchPatientIds = async () => {
       try {
         const response = await fetch(
-          "https://vs3k4b04-8000.inc1.devtunnels.ms/api/api/get-existing-patient-ids/"
+          "https://v6fdr37z-8000.inc1.devtunnels.ms/api/api/get-existing-patient-ids/"
         );
         const data = await response.json();
         setPatientIds(data.patient_ids);
@@ -150,59 +154,60 @@ const requestStoragePermission = async () => {
   // ✅ Main function: Handle Download
   const handleExportPatientDataDownload = async () => {
     try {
-      console.log("=== Starting Excel download request ===");
-  
-      // ✅ Request Storage Permission Before Downloading
-      const hasPermission = await requestStoragePermission();
-      if (!hasPermission) {
-        console.error("Storage permission denied. Cannot download file.");
-        Alert.alert("Permission Denied", "You must allow storage access to download files.");
-        return;
-      }
-  
-      // ✅ Fetch Excel File
-      const response = await fetch(
-        "https://vs3k4b04-8000.inc1.devtunnels.ms/patient/export-patient-data/"
-      );
-  
-      console.log("Response status:", response.status);
-      if (!response.ok) {
-        throw new Error(`Failed to download Excel file. Status: ${response.status}`);
-      }
-  
-      const blob = await response.blob();
-      console.log("Blob received, size:", blob.size);
-  
-      // ✅ Convert Blob to Base64 Before Saving
-      const base64Data = await blobToBase64(blob);
-      console.log("Base64 conversion successful.");
-  
-      // ✅ Save File to Correct Location
-      const fileUri = `${FileSystem.cacheDirectory}exported_patient_data.xlsx`;
-      console.log("Saving file to:", fileUri);
-  
-      await FileSystem.writeAsStringAsync(fileUri, base64Data, {
-        encoding: FileSystem.EncodingType.Base64,
-      });
-  
-      // ✅ Check If File Exists Before Sharing
-      const fileExists = await FileSystem.getInfoAsync(fileUri);
-      console.log("File exists?", fileExists.exists);
-  
-      if (fileExists.exists) {
-        console.log("File exists. Sharing now...");
-        await Sharing.shareAsync(fileUri);
-      } else {
-        throw new Error("File was not saved correctly.");
-      }
-  
-      Alert.alert("Download Successful", "Excel file has been downloaded.");
+        console.log("=== Starting Excel download request ===");
+
+        // ✅ Request Storage Permission Before Downloading
+        const hasPermission = await requestStoragePermission();
+        if (!hasPermission) {
+            Alert.alert("Permission Denied", "Storage access is required to download files.");
+            return;
+        }
+
+        // ✅ Fetch Excel File
+        const response = await fetch(
+            "https://v6fdr37z-8000.inc1.devtunnels.ms/patient/export-patient-data/"
+        );
+
+        if (!response.ok) throw new Error(`Failed to download Excel file. Status: ${response.status}`);
+
+        const blob = await response.blob();
+        const base64Data = await blobToBase64(blob);
+
+        // ✅ Get the Downloads folder path
+        const downloadsDir = RNFS.DownloadDirectoryPath;
+        let fileName = "exported_patient_data.xlsx";
+        let fileUri = `${downloadsDir}/${fileName}`;
+        let counter = 1;
+
+        // ✅ Check if the file already exists, and generate a new name if needed
+        while (await RNFS.exists(fileUri)) {
+            fileName = `exported_patient_data(${counter}).xlsx`;
+            fileUri = `${downloadsDir}/${fileName}`;
+            counter++;
+        }
+
+        // ✅ Save the new file
+        await RNFS.writeFile(fileUri, base64Data, "base64");
+
+        console.log(`✅ File saved at: ${fileUri}`);
+        Alert.alert("Download Successful", `Excel file saved as ${fileName} in Downloads.`);
     } catch (error) {
-      console.error("Error in handleExportPatientDataDownload:", error);
-      Alert.alert("Download Failed", "An error occurred while downloading the Excel file.");
+        console.error("❌ Download Error:", error instanceof Error ? error.message : String(error));
+        Alert.alert("Download Failed", `Error: ${error instanceof Error ? error.message : String(error)}`);
     }
-  };
+};
+
   
+/*   // ✅ Corrected Function to Open Excel File
+  const openFile = async (filePath: string) => {
+    try {
+      console.log("Opening file:", filePath);
+      await Linking.openURL(`file://${filePath}`);
+    } catch (error) {
+      console.error("❌ Error opening file:", error);
+      Alert.alert("Error", "Unable to open the Excel file.");
+    }
+  }; */
 
   const handlePatientSelect = (patientId: string) => {
     setSelectedPatientId(patientId); // Store the selected patient ID
@@ -223,7 +228,7 @@ const requestStoragePermission = async () => {
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-sleep-data/${formattedDate}/`
+              `https://v6fdr37z-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-sleep-data/${formattedDate}/`
             );
             console.log(`Response for patient ${patientId} (Sleep):`, response.data);
 
@@ -252,7 +257,7 @@ const requestStoragePermission = async () => {
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-vegdiet-data/${formattedDate}/`
+              `https://v6fdr37z-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-vegdiet-data/${formattedDate}/`
             );
             console.log(`Response for patient ${patientId} (Veg):`, response.data);
             newVegData[patientId] = response.data.exists;
@@ -279,7 +284,7 @@ const requestStoragePermission = async () => {
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-nonvegdiet-data/${formattedDate}/`
+              `https://v6fdr37z-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-nonvegdiet-data/${formattedDate}/`
             );
             console.log(`Response for patient ${patientId} (Non-Veg):`, response.data);
             newNonVegData[patientId] = response.data.exists;
@@ -306,7 +311,7 @@ const requestStoragePermission = async () => {
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-water-data/${formattedDate}/`
+              `https://v6fdr37z-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-water-data/${formattedDate}/`
             );
             console.log(`Response for patient ${patientId} (Water):`, response.data);
             newWaterData[patientId] = response.data.exists;
@@ -333,7 +338,7 @@ const requestStoragePermission = async () => {
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-dailyexercise-data/${formattedDate}/`
+              `https://v6fdr37z-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-dailyexercise-data/${formattedDate}/`
             );
             console.log(`Response for patient ${patientId} (Exercise):`, response.data);
             newExerciseData[patientId] = response.data.exists;
@@ -360,7 +365,7 @@ const requestStoragePermission = async () => {
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-walking-data/${formattedDate}/`
+              `https://v6fdr37z-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-walking-data/${formattedDate}/`
             );
             console.log(`Response for patient ${patientId} (Walking):`, response.data);
             newWalkingData[patientId] = response.data.exists;
@@ -387,7 +392,7 @@ const requestStoragePermission = async () => {
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-yoga-data/${formattedDate}/`
+              `https://v6fdr37z-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-yoga-data/${formattedDate}/`
             );
             console.log(`Response for patient ${patientId} (Yoga):`, response.data);
             newYogaData[patientId] = response.data.exists;
@@ -414,7 +419,7 @@ const requestStoragePermission = async () => {
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-medicine-data/${formattedDate}/`
+              `https://v6fdr37z-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-medicine-data/${formattedDate}/`
             );
             console.log(`Response for patient ${patientId} (Medicine):`, response.data);
             newMedicineData[patientId] = response.data.exists;
@@ -441,7 +446,7 @@ const requestStoragePermission = async () => {
         patientIds.map(async (patientId) => {
           try {
             const response = await axios.get(
-              `https://vs3k4b04-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-lifestyle-data/${formattedDate}/`
+              `https://v6fdr37z-8000.inc1.devtunnels.ms/patient/patient/${patientId}/all-lifestyle-data/${formattedDate}/`
             );
             console.log(`Response for patient ${patientId} (Lifestyle):`, response.data);
             newLifestyleData[patientId] = response.data.exists;

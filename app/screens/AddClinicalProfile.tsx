@@ -92,7 +92,7 @@ const AddClinicalProfilePage: React.FC = () => {
     const fetchPatientIDs = async () => {
       try {
         const response = await fetch(
-          "https://vs3k4b04-8000.inc1.devtunnels.ms/api/api/get-existing-patient-ids/"
+          "https://v6fdr37z-8000.inc1.devtunnels.ms/api/api/get-existing-patient-ids/"
         );
         const data = await response.json();
         const options = data.patient_ids.map((id: string) => ({

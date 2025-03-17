@@ -2,7 +2,7 @@
   "expo": {
     "name": "IND Heart",
     "slug": "ind-heart",
-    "version": "1.0.0",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "indheart",
@@ -16,7 +16,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.pinespheresolutions.INDHeartSuraksha"
+      "package": "com.indheart",
+      "versionCode": 2
     },
     "web": {
       "bundler": "metro",

@@ -68,7 +68,7 @@ const LoginPage: React.FC = () => {
 
     try {
       const response = await fetch(
-        "https://vs3k4b04-8000.inc1.devtunnels.ms/api/api/login_with_mobile/",
+        "https://v6fdr37z-8000.inc1.devtunnels.ms/api/api/login_with_mobile/",
         {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -121,11 +121,11 @@ const LoginPage: React.FC = () => {
             <Text style={styles.appText}>{languageText.appName}</Text>
           </View>
            {/* Temp Test Link */}
-           <TouchableOpacity
+           {/* <TouchableOpacity
               onPress={() => navigation.navigate("TempTestNavigation")}
             >
               <Text style={styles.tempTestLink}>Test Link</Text>
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           <View style={styles.imageContainer}>
             <Animated.Image
               source={require("../../assets/images/login.png")}

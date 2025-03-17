@@ -88,7 +88,7 @@ const AddPatientProfile: React.FC = () => {
     const fetchNextPatientID = async () => {
       try {
         const response = await fetch(
-          "https://vs3k4b04-8000.inc1.devtunnels.ms/api/api/get-next-patient-id/"
+          "https://v6fdr37z-8000.inc1.devtunnels.ms/api/api/get-next-patient-id/"
         );
         const data = await response.json();
         setPatientID(data.next_patient_id);
